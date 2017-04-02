@@ -1,6 +1,6 @@
 # Lifted from https://www.drupal.org/node/2330631
 id: assign_manager_to_performance
-label: 'Assign ACTIVE volunteer as MANAGER for selected performance(s)'
+label: 'Assign the ACTIVE volunteer as MANAGER for selected performance(s)'
 status: true
 langcode: en
 type: node
