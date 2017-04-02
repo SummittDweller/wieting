@@ -1,0 +1,10 @@
+# Lifted from https://www.drupal.org/node/2330631
+id: block_volunteer_from_performance
+label: 'Block me from working selected performance(s)'
+status: true
+langcode: en
+type: node
+plugin: block_volunteer_from_performance
+dependencies:
+  module:
+    - node

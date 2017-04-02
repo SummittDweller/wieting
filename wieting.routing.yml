@@ -1,0 +1,16 @@
+
+wieting.content:
+  path: '/wieting'
+  defaults:
+    _controller: '\Drupal\wieting\Controller\WietingController::content'
+    _title: 'Hello World'
+  requirements:
+    _permission: 'access content'
+
+wieting.admin.config.custom.wieting:
+  path: /admin/config/custom/wieting
+  defaults:
+    _form: \Drupal\wieting\Form\AdminSettingsForm
+    _title: 'Administer '
+  requirements:
+    _permission: 'TODO: set permission machine name'

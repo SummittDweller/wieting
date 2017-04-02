@@ -1,0 +1,10 @@
+# Copied from system.action.create_show_performances.yml
+id: update_volunteer
+label: 'Update volunteer info'
+status: true
+langcode: en
+type: user
+plugin: update_volunteer
+dependencies:
+  module:
+    - user

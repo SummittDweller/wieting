@@ -1,0 +1,10 @@
+# Copied from system.action.create_show_performances.yml
+id: transfer_available_dates
+label: 'Transfer available dates'
+status: true
+langcode: en
+type: node
+plugin: transfer_available_dates
+dependencies:
+  module:
+    - node

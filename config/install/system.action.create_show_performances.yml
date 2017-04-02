@@ -1,0 +1,10 @@
+# Lifted from https://www.drupal.org/node/2330631
+id: create_show_performances
+label: 'Create a set of performances for selected show(s)'
+status: true
+langcode: en
+type: node
+plugin: create_show_performances
+dependencies:
+  module:
+    - node

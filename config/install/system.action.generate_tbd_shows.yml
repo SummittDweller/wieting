@@ -1,0 +1,10 @@
+# Lifted from https://www.drupal.org/node/2330631
+id: generate_tbd_shows
+label: 'Generate 1 month of TBD shows'
+status: true
+langcode: en
+type: node
+plugin: generate_tbd_shows
+dependencies:
+  module:
+    - node

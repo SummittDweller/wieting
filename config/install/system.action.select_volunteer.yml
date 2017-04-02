@@ -1,0 +1,9 @@
+id: select_volunteer
+label: 'Select the ACTIVE Wieting volunteer.  Pick only ONE!'
+status: true
+langcode: en
+type: user
+plugin: select_volunteer
+dependencies:
+  module:
+    - user

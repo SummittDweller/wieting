@@ -1,0 +1,10 @@
+# Lifted from https://www.drupal.org/node/2330631
+id: assign_ticket_seller_to_performance
+label: 'Assign the ACTIVE volunteer as TICKET SELLER for selected performance(s)'
+status: true
+langcode: en
+type: node
+plugin: assign_ticket_seller_to_performance
+dependencies:
+  module:
+    - node

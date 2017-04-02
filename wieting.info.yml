@@ -1,0 +1,7 @@
+name: Wieting
+type: module
+description: 'A custom module providing features specific to http://wieting.tamatoledo.com.'
+core: 8.x
+configure: admin/config/custom/wieting
+package: Custom
+
