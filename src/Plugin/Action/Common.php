@@ -135,7 +135,7 @@ class Common {
       if ($role === 'manager' && $vR['target_id'] === Common::MANAGER) { return true; }
       if ($role === 'monitor' && $vR['target_id'] === Common::MONITOR) { return true; }
       if ($role === 'concessions' && $vR['target_id'] === Common::CONCESSIONS) { return true; }
-      if ($role === 'ticket seller' && $vR['target_id'] === Common::TICKET_SELLER) { return true; }
+      if ($role === 'ticket_seller' && $vR['target_id'] === Common::TICKET_SELLER) { return true; }
     }
   
     drupal_set_message("Sorry, '$name' is not currently listed for the role of $role.", 'warning');

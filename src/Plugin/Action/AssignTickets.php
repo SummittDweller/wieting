@@ -11,27 +11,30 @@ namespace Drupal\wieting\Plugin\Action;
 use Drupal\Core\Action\ActionBase;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\wieting\Plugin\Action\Common;
+use Symfony\Component\HttpFoundation\RedirectResponse;
 
 /**
  * Assign user as Ticket Seller to selected performance(s)
  *
  * @Action(
- *   id = "assign_ticket_seller_to_performance",
+ *   id = "assign_tickets_to_performance",
  *   label = @Translation("Assign the ACTIVE volunteer as ticket seller for the selected performance(s)"),
  *   type = "node"
  * )
  */
-class AssignTicketSeller extends ActionBase {
+class AssignTickets extends ActionBase {
 
   /**
    * {@inheritdoc}
    */
   public function execute($entity = NULL) {
     $uid = \Drupal\wieting\Plugin\Action\Common::getActiveUID( );
-    if (\Drupal\wieting\Plugin\Action\Common::isHelpNeeded('ticket seller', $entity)) {
+    if (\Drupal\wieting\Plugin\Action\Common::isHelpNeeded('ticket_seller', $entity)) {
       if (\Drupal\wieting\Plugin\Action\Common::allowedPerformanceDate($uid, $entity)) {
-        if (\Drupal\wieting\Plugin\Action\Common::allowedVolunteerRole($uid, 'ticket seller')) {
-          \Drupal\wieting\Plugin\Action\Common::setPerformanceRole($uid, $entity, 'ticket seller');
+        if (\Drupal\wieting\Plugin\Action\Common::allowedVolunteerRole($uid, 'ticket_seller')) {
+          \Drupal\wieting\Plugin\Action\Common::setPerformanceRole($uid, $entity, 'ticket_seller');
+          $response = new RedirectResponse("/admin/volunteers/list");
+          $response->send();
         }
       }
     }

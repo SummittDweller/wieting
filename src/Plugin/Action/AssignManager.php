@@ -11,6 +11,7 @@ namespace Drupal\wieting\Plugin\Action;
 use Drupal\Core\Action\ActionBase;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\wieting\Plugin\Action\Common;
+use Symfony\Component\HttpFoundation\RedirectResponse;
 
 /**
  * Assign user as Manager to selected performance(s)
@@ -32,6 +33,8 @@ class AssignManager extends ActionBase {
       if (\Drupal\wieting\Plugin\Action\Common::allowedPerformanceDate($uid, $entity)) {
         if (\Drupal\wieting\Plugin\Action\Common::allowedVolunteerRole($uid, 'manager')) {
           \Drupal\wieting\Plugin\Action\Common::setPerformanceRole($uid, $entity, 'manager');
+          $response = new RedirectResponse("/admin/volunteers/list");
+          $response->send();
         }
       }
     }

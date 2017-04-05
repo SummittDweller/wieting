@@ -34,7 +34,7 @@ class SelectVolunteer extends ActionBase {
     \Drupal::state()->set('wieting_selected_volunteer_id', $uid);
     \Drupal::state()->set('wieting_selected_volunteer_name', $username);
     \Drupal::state()->set('wieting_selected_volunteer_team', $team);
-   if (strlen($team) < 1) { $team = '<blank>'; }
+    if (strlen($team) < 1) { $team = '<blank>'; }
     drupal_set_message("$username ($uid) is now the ACTIVE volunteer. This volunteers team status/name is '$team'.");
     $response = new RedirectResponse("/manage-performances");
     $response->send();

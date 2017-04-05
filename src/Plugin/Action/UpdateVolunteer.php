@@ -27,7 +27,6 @@ class UpdateVolunteer extends ActionBase {
    * {@inheritdoc}
    */
   public function execute($entity = NULL) {
-    drupal_set_message('This is \Drupal\wieting\Plugin\Action\UpdateVolunteer\execute.');
     // ksm("entity...", $entity);  /* or use kint($entity) but it disappears when the page redirects! */
 
     //--- Update volunteer's team status ------------------------------------------------------
@@ -42,14 +41,16 @@ class UpdateVolunteer extends ActionBase {
 
     // Manager and Ticket Seller...no team needed.
     if (in_array("Manager",$roles) || in_array("Ticket Seller", $roles)) {
-      $team = "";
+      $team = $username;
     }
 
-    // Partner...needs a primary team member.
+    // Partner or Student...needs a primary team member.
     if (in_array("Partner", $roles)) {
       $team = $this->findPrimaryPartner($uid, $username);
+    } else if (in_array("Student", $roles)) {
+      $team = $this->findPrimaryPartner($uid, $username);
     }
-
+  
     // Monitor or Concessions primary... should have a partner.
     if (in_array("Monitor",$roles) || in_array("Concessions", $roles)) {
       if (!$has_partner = $entity->get('field_has_partner')->getValue()) {     // Needs a partner!
@@ -89,7 +90,10 @@ class UpdateVolunteer extends ActionBase {
         }
       }
     }
-    $entity->set('field_team_name', $team);
+    $entity->set('field_monitor_team', $team);
+    $entity->set('field_concessions_team', $team);
+    $entity->set('field_ticket_seller_team', $username);
+    $entity->set('field_manager_team', $username);
 
     //--- Build the user's availabilty string ------------------------------------------------------
 
@@ -212,7 +216,6 @@ class UpdateVolunteer extends ActionBase {
    *   access is either explicitly forbidden or "no opinion".
    */
   public function access($object, AccountInterface $account = NULL, $return_as_object = FALSE) {
-    drupal_set_message('This is \Drupal\wieting\Plugin\Action\UpdateVolunteer\access.');
     return TRUE;
   }
 
