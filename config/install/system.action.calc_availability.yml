@@ -1,0 +1,10 @@
+# Lifted from https://www.drupal.org/node/2330631
+id: calc_availability
+label: 'Calculate volunteer availability scores for selected performance(s)'
+status: true
+langcode: en
+type: node
+plugin: calc_availability
+dependencies:
+  module:
+    - node

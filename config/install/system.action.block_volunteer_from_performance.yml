@@ -1,6 +1,6 @@
 # Lifted from https://www.drupal.org/node/2330631
 id: block_volunteer_from_performance
-label: 'Block me from working the selected performance(s)'
+label: 'Block the ACTIVE volunteer from working the selected performance(s)'
 status: true
 langcode: en
 type: node

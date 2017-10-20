@@ -1,10 +1,10 @@
 # Lifted from https://www.drupal.org/node/2330631
-id: generate_tbd_shows
-label: 'Generate 3 months of TBD shows'
+id: auto_schedule
+label: 'Auto-schedule volunteers for selected performance(s)'
 status: true
 langcode: en
 type: node
-plugin: generate_tbd_shows
+plugin: auto_schedule
 dependencies:
   module:
     - node

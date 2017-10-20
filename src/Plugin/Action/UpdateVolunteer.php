@@ -31,9 +31,14 @@ class UpdateVolunteer extends ActionBase {
 
     //--- Update volunteer's team status ------------------------------------------------------
 
-    $team = "* Needs Attention!";
     $username = $entity->getUsername();
-    $uid = (int)$entity->uid->value;
+
+    // Don't change any username in all CAPS.
+    $allCaps = strtoupper($username);
+    if ($username === $allCaps) { return; }
+
+    $team = "* Needs Attention!";
+    $uid = (int) $entity->uid->value;
     $roles = $this->getVolunteerRoles($entity);
 
     // Process roles in reverse priority order...
@@ -93,7 +98,7 @@ class UpdateVolunteer extends ActionBase {
     $entity->set('field_monitor_team', $team);
     $entity->set('field_concessions_team', $team);
     $entity->set('field_ticket_seller_team', $username);
-    $entity->set('field_manager_team', $username);
+    $entity->set('field_manager_team', $team);            // saving the $team name here as it is more meaningful
 
     //--- Build the user's availabilty string ------------------------------------------------------
 
@@ -199,24 +204,10 @@ class UpdateVolunteer extends ActionBase {
 
   /**
    * Checks object access.
-   *
-   * @param mixed $object
-   *   The object to execute the action on.
-   * @param \Drupal\Core\Session\AccountInterface $account
-   *   (optional) The user for which to check access, or NULL to check access
-   *   for the current user. Defaults to NULL.
-   * @param bool $return_as_object
-   *   (optional) Defaults to FALSE.
-   *
-   * @return bool|\Drupal\Core\Access\AccessResultInterface
-   *   The access result. Returns a boolean if $return_as_object is FALSE (this
-   *   is the default) and otherwise an AccessResultInterface object.
-   *   When a boolean is returned, the result of AccessInterface::isAllowed() is
-   *   returned, i.e. TRUE means access is explicitly allowed, FALSE means
-   *   access is either explicitly forbidden or "no opinion".
    */
   public function access($object, AccountInterface $account = NULL, $return_as_object = FALSE) {
-    return TRUE;
+    $status = \Drupal\wieting\Plugin\Action\Common::hasAccess($object);
+    return $status;
   }
 
   /** getVolunteerRoles

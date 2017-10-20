@@ -1,3 +1,10 @@
 'administer wieting':
-  title: 'administer wieting'
-  description: 'Administer wieting'
+  title: 'Administer Wieting Module'
+  description: 'Administer the Wieting module'
+'manage performances':
+  title: 'Manage Performances'
+  description: 'Manage performances using the Wieting module'
+'manage volunteers':
+  title: 'Manage Volunteers'
+  description: 'Manage volunteers using the Wieting module'
+

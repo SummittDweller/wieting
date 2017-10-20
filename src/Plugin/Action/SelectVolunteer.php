@@ -14,7 +14,7 @@ use Drupal\Core\Session\AccountInterface;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 
 /**
- * Updates volunteer information including "Team Name" and "Available", and generates corresponding "Assignment" nodes.
+ * Selects the ACTIVE volunteer.
  *
  * @Action(
  *   id = "select_volunteer",
@@ -28,42 +28,60 @@ class SelectVolunteer extends ActionBase {
    * {@inheritdoc}
    */
   public function execute($entity = NULL) {
+    $redirect = TRUE;
     $username = $entity->getUsername( );
     $uid = $entity->id( );
-    $team = $entity->get('field_team_name')->getString( );
-    \Drupal::state()->set('wieting_selected_volunteer_id', $uid);
-    \Drupal::state()->set('wieting_selected_volunteer_name', $username);
-    \Drupal::state()->set('wieting_selected_volunteer_team', $team);
-    if (strlen($team) < 1) { $team = '<blank>'; }
-    drupal_set_message("$username ($uid) is now the ACTIVE volunteer. This volunteers team status/name is '$team'.");
-    $response = new RedirectResponse("/manage-performances");
-    $response->send();
-    // $data = \Drupal::state()->get('wieting_selected_volunteer_id') ?: false;
-    // \Drupal::state()->delete('wieting_selected_volunteer_id');
-  }
+    $tempstore = \Drupal::service('user.private_tempstore')->get('wieting');
+    $uid_list = $tempstore->get('wieting_selected_volunteers');
 
+    // If "HELP NEEDED" was selected, clear the list and re-populate it with 100 instances of "HELP NEEDED".
+    if ($username === "HELP NEEDED") {
+      $uid_list = array();
+      for ($i=0; $i<100; $i++) { $uid_list[ ] = $uid; }
+      $msg = "The ACTIVE volunteer list now contains 100 instances of 'HELP NEEDED'.";
+
+    // If CLEAR ACTIVE LIST was selected just clear the list.
+    } else if ($uid === Common::CLEAR) {
+      $uid_list = array();
+      $msg = "The ACTIVE volunteer list has been cleared.";
+      $redirect = FALSE;
+
+    // If REPEAT is at the top of the list, clear it and add this user 100 times.
+    } else if ($uid_list[0] === Common::REPEAT) {
+        $uid_list = array();
+        for ($i=0; $i<100; $i++) { $uid_list[ ] = $uid; }
+        $msg = "The ACTIVE volunteer list now contains 100 instances of '$username'.";
+
+    // Otherwise, add the selected user to the list.
+    } else {
+      $uid_list[ ] = $uid;
+      $n = count($uid_list);
+      $msg = "$username ($uid) is now ACTIVE volunteer number $n.";
+    }
+
+    $tempstore->set('wieting_selected_volunteers', $uid_list);
+    drupal_set_message($msg);
+
+    // @TODO...The following is for testing ONLY.
+    // Common::dispatchVolunteerReminders();   // Just testing here.
+  
+    // Clear the message buffer
+    \Drupal\wieting\Plugin\Action\Common::setBufferedText("");
+
+    if ($redirect) {
+      $response = new RedirectResponse("/manage-performances");
+      $response->send();
+    }
+  }
+  
   /**
    * Checks object access.
-   *
-   * @param mixed $object
-   *   The object to execute the action on.
-   * @param \Drupal\Core\Session\AccountInterface $account
-   *   (optional) The user for which to check access, or NULL to check access
-   *   for the current user. Defaults to NULL.
-   * @param bool $return_as_object
-   *   (optional) Defaults to FALSE.
-   *
-   * @return bool|\Drupal\Core\Access\AccessResultInterface
-   *   The access result. Returns a boolean if $return_as_object is FALSE (this
-   *   is the default) and otherwise an AccessResultInterface object.
-   *   When a boolean is returned, the result of AccessInterface::isAllowed() is
-   *   returned, i.e. TRUE means access is explicitly allowed, FALSE means
-   *   access is either explicitly forbidden or "no opinion".
    */
   public function access($object, AccountInterface $account = NULL, $return_as_object = FALSE) {
-    return TRUE;
+    $status = \Drupal\wieting\Plugin\Action\Common::hasAccess($object);
+    return $status;
   }
-
+  
 }
 
 ?>

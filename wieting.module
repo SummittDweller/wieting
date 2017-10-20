@@ -1,0 +1,121 @@
+<?php
+/** Wieting hook_implementations
+ *
+ * User: markmcfate
+ * Date: 4/5/17
+ * Time: 11:18 AM
+ */
+
+
+/**
+ * Implements hook_theme( ) to introduce a new 'active_user' custom block.
+ * See https://drupal.stackexchange.com/questions/217884/drupal-8-custom-block-class-with-custom-template-cache-issue
+ *
+function wieting_theme($existing, $type, $theme, $path) {
+  return [
+    'active_user_block' => [
+      'variables' => [
+        'uid' => NULL,
+        'name' => NULL,
+      ],
+    ],
+  ];
+}
+*/
+
+/**
+ * Implements hook_cron().
+ */
+function wieting_cron( ) {
+  \Drupal\wieting\Plugin\Action\Common::dispatchVolunteerReminders( );
+}
+
+
+/**
+ * Implements hook_mail().
+ */
+function wieting_mail($key, &$message, $params) {
+ switch ($key) {
+   case 'volunteer_reminder':
+     $message['from'] = \Drupal::config('system.site')->get('mail');
+     $message['subject'] = 'Wieting Volunteer Reminder';
+     $message['body'][] = $params['message'];
+     break;
+   case 'performance_change':
+     $message['from'] = \Drupal::config('system.site')->get('mail');
+     $message['subject'] = 'Wieting Performance Change';
+     $message['body'][] = $params['message'];
+     break;
+ }
+}
+
+
+/**
+ * Implements hook_form_alter().
+ *
+function wieting_form_alter(&$form, \Drupal\Core\Form\FormStateInterface\FormStateInterface $form_state, $form_id) {
+  switch ($form_id) {
+    // Alter login form and add own custom submit handler.
+    case 'user_login_form':
+      $form['#submit'][] = '_wieting_user_login_form_submit';
+      break;
+  }
+}
+
+/**
+ * Custom submit handler for login form.
+ *
+function _wieting_user_login_form_submit($form, FormStateInterface $form_state) {
+  $uid = \Drupal\user\Entity\User::load(\Drupal::currentUser()->id());
+  $tempstore = \Drupal::service('user.private_tempstore')->get('wieting');
+  if ($uid === 0) {
+    $tempstore->set('wieting_selected_volunteer_id', NULL);
+  } else {
+    $tempstore->set('wieting_selected_volunteer_id', $uid);
+  }
+}
+*/
+
+
+/**
+ * Implements hook_user_login().
+ */
+function wieting_user_login($account) {
+  // ksm('wieting_user_login account...',$account);
+  $name = $account->getUsername( );
+  $uid = $account->id( );
+  drupal_set_message("$name (user ID $uid) has logged in.");
+  $tempstore = \Drupal::service('user.private_tempstore')->get('wieting');
+  $uid_list = array( );
+  if ($uid != "0") {
+    for ($i=0; $i<100; $i++) {
+      $uid_list[ ] = (int)$uid;
+    }
+  }
+  $tempstore->set('wieting_selected_volunteers', $uid_list);
+}
+
+
+/**
+ * Implements hook_user_logout($account).
+ *
+ */
+function wieting_user_logout($account) {
+  $tempstore = \Drupal::service('user.private_tempstore')->get('wieting');
+  $tempstore->set('wieting_selected_volunteers', NULL);
+}
+
+
+/**
+ * Implements hook_views_pre_render().
+ *
+function wieting_views_pre_render(\Drupal\views\ViewExecutable &$view) {
+  // Check the view name
+  $vName = $view->name;
+  drupal_set_message(__FUNCTION__ . " called.  View name is: $vName.", 'info');
+//  if ($view->name == 'hauliers_auto_emailing') {
+    if ($buffer = \Drupal\wieting\Plugin\Action\Common::getBufferedText()) {
+      drupal_set_message("Buffered text is:\n" . $buffer, 'info');
+    }
+//  }
+} */

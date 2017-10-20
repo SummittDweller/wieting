@@ -1,5 +1,5 @@
 id: select_volunteer
-label: 'Select the ACTIVE Wieting volunteer.  Pick only ONE!'
+label: 'Select the ACTIVE Wieting volunteer(s).  Pick as many as you like!'
 status: true
 langcode: en
 type: user
