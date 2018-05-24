@@ -1,0 +1,36 @@
+{
+    "name": "wieting",
+    "type": "project",
+    "repositories": [
+        {
+            "type": "composer",
+            "url": "https://packages.drupal.org/8"
+        },
+        {
+            "type": "package",
+            "package": {
+                "name": "SummittDweller/wieting",
+                "version": "dev-master",
+                "type":"drupal-custom-module",
+                "source": {
+                    "url": "https://github.com/SummittDweller/wieting.git",
+                    "type": "git",
+                    "reference": "master"
+                }
+            }
+        }
+    ],
+    "require": {
+        "composer/installers": "^1.2"
+    },   
+    "extra": {
+        "installer-paths": {
+            "web/libraries/{$name}": ["type:drupal-library"],
+            "web/modules/contrib/{$name}": ["type:drupal-module"],
+            "web/modules/custom/{$name}": ["type:drupal-custom-module"],
+            "web/profiles/contrib/{$name}": ["type:drupal-profile"],
+            "web/themes/contrib/{$name}": ["type:drupal-theme"],
+            "web/themes/custom/{$name}": ["type:drupal-custom-theme"]            
+        }
+    }
+}
