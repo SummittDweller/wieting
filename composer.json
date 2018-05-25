@@ -10,8 +10,8 @@
             "type": "package",
             "package": {
                 "name": "wieting",
-                "version": "1.1",
-                "type":"drupal-custom-module",
+                "version": "dev-master",
+                "type":"drupal-module",
                 "source": {
                     "url": "https://github.com/SummittDweller/wieting.git",
                     "type": "git",
@@ -27,10 +27,8 @@
         "installer-paths": {
             "web/libraries/{$name}": ["type:drupal-library"],
             "web/modules/contrib/{$name}": ["type:drupal-module"],
-            "web/modules/custom/{$name}": ["type:drupal-custom-module"],
             "web/profiles/contrib/{$name}": ["type:drupal-profile"],
-            "web/themes/contrib/{$name}": ["type:drupal-theme"],
-            "web/themes/custom/{$name}": ["type:drupal-custom-theme"]            
+            "web/themes/contrib/{$name}": ["type:drupal-theme"]       
         }
     }
 }
