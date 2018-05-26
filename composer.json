@@ -1,36 +1,31 @@
 {
-    "name": "summittservices/wieting",
-    "type": "project",
+    "name": "summittdweller/wieting",
+    "description": "Drupal 8 custom module for the Wieting Theatre",
+    "type": "drupal-custom-module",
+    "license": "GPL-2.0-or-later",
+    "authors": [
+        {
+            "name": "Mark A. McFate",
+            "role": "Creator"
+        }
+    ],
     "repositories": [
         {
             "type": "composer",
             "url": "https://packages.drupal.org/8"
-        },
-        {
-            "type": "package",
-            "package": {
-                "name": "wieting",
-                "version": "dev-master",
-                "type":"drupal-custom-module",
-                "source": {
-                    "url": "https://github.com/SummittDweller/wieting.git",
-                    "type": "git",
-                    "reference": "master"
-                }
-            }
         }
     ],
     "require": {
-        "composer/installers": "^1.2"
-    },   
-    "extra": {
-        "installer-paths": {
-            "web/libraries/{$name}": ["type:drupal-library"],
-            "web/modules/contrib/{$name}": ["type:drupal-module"],
-            "web/profiles/contrib/{$name}": ["type:drupal-profile"],
-            "web/themes/contrib/{$name}": ["type:drupal-theme"],
-            "web/modules/custom/{$name}": ["type:drupal-custom-module"],
-            "web/themes/custom/{$name}": ["type:drupal-custom-theme"]
+        "drupal/bootstrap": "^3.11"
+    },
+    "package": {
+        "name": "wieting",
+        "version": "dev-master",
+        "type":"drupal-custom-module",
+        "source": {
+            "url": "https://github.com/SummittDweller/wieting.git",
+            "type": "git",
+            "reference": "master"
         }
     }
 }
