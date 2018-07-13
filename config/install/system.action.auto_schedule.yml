@@ -4,6 +4,7 @@ label: 'Auto-schedule volunteers for selected performance(s)'
 status: true
 langcode: en
 type: node
+weight: 10
 plugin: auto_schedule
 dependencies:
   module:

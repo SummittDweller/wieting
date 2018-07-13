@@ -34,26 +34,33 @@ class AutoSchedule extends ActionBase {
    *
    */
   public function execute($entity = NULL) {
-    // drupal_set_message('This is \Drupal\wieting\Plugin\Action\CalcAvailability\execute.');
     // ksm($entity);
+
     $node = \Drupal\node\Entity\Node::load($entity->id( ));         // ...performance exists, load it for update.
-  
+    $title = $entity->getTitle( );
+
+    $msg = "This is \\Drupal\\wieting\\Plugin\\Action\\CalcAvailability\\execute working on '$title'.";
+    \Drupal::logger('wieting')->notice($msg);
+    // drupal_set_message($msg);
+
     // If there's no text in the message buffer, initialize it now.
     if (!$buffer = \Drupal\wieting\Plugin\Action\Common::getBufferedText()) {
       $cID = \Drupal::currentUser()->id();
       $account = \Drupal\user\Entity\User::load($cID);  // pass your uid
       $current = $account->getUsername();
-      $message = "$current has initiated the following auto-schedule performance changes: \n\n";
-      \Drupal\wieting\Plugin\Action\Common::setBufferedText($message);      // initialize the message buffer
+      // $html = "<html><header><title>Auto-Schedule Log for $title</title></header><body>";
+      // \Drupal\wieting\Plugin\Action\Common::setBufferedText($html);      // initialize the message buffer
+      $message = "$current has initiated auto-schedule performance changes...";
+      \Drupal\wieting\Plugin\Action\Common::setBufferedText($message);
     }
-    
+
     // Update availability scores
     \Drupal\wieting\Plugin\Action\Common::updateAvailability($node);
-    
+
     // Fetch the sorted available volunteers list
     $values = $entity->get('field_availability_scores')->getValue( );
     // ksm($values);
-    
+
     // Manager...
     if (\Drupal\wieting\Plugin\Action\Common::isHelpNeeded('manager', $entity, TRUE)) {
       foreach ($values as $n => $value) {
@@ -62,11 +69,13 @@ class AutoSchedule extends ActionBase {
         if (\Drupal\wieting\Plugin\Action\Common::allowedVolunteerRole($uid, 'manager', TRUE)) {
           \Drupal\wieting\Plugin\Action\Common::setPerformanceRole($uid, $node, 'manager', TRUE);
           unset($values[$n]);
+          $msg = "$name with a score of $score is available as a MANAGER and is now assigned to work '$title'.";
+          \Drupal\wieting\Plugin\Action\Common::appendBufferedText($msg);
           break;
         }
       }
     }
-  
+
     // Monitors...
     if (\Drupal\wieting\Plugin\Action\Common::isHelpNeeded('monitor', $entity, TRUE)) {
       foreach ($values as $n => $value) {
@@ -75,6 +84,8 @@ class AutoSchedule extends ActionBase {
         if (\Drupal\wieting\Plugin\Action\Common::allowedVolunteerRole($uid, 'monitor', TRUE)) {
           \Drupal\wieting\Plugin\Action\Common::setPerformanceRole($uid, $node, 'monitor', TRUE);
           unset($values[$n]);
+          $msg = "$name with a score of $score is available as a MONITOR and is now assigned to work '$title'.";
+          \Drupal\wieting\Plugin\Action\Common::appendBufferedText($msg);
           break;
         }
       }
@@ -88,6 +99,8 @@ class AutoSchedule extends ActionBase {
         if (\Drupal\wieting\Plugin\Action\Common::allowedVolunteerRole($uid, 'concessions', TRUE)) {
           \Drupal\wieting\Plugin\Action\Common::setPerformanceRole($uid, $node, 'concessions', TRUE);
           unset($values[$n]);
+          $msg = "$name with a score of $score is available for CONCESSIONS and is now assigned to work '$title'.";
+          \Drupal\wieting\Plugin\Action\Common::appendBufferedText($msg);
           break;
         }
       }
@@ -101,13 +114,23 @@ class AutoSchedule extends ActionBase {
         if (\Drupal\wieting\Plugin\Action\Common::allowedVolunteerRole($uid, 'ticket_seller', TRUE)) {
           \Drupal\wieting\Plugin\Action\Common::setPerformanceRole($uid, $node, 'ticket_seller', TRUE);
           unset($values[$n]);
+          $msg = "$name with a score of $score is available as a TICKET SELLER and is now assigned to work '$title'.";
+          \Drupal\wieting\Plugin\Action\Common::appendBufferedText($msg);
           break;
         }
       }
     }
 
+  $text = \Drupal\wieting\Plugin\Action\Common::getBufferedText( ); // . "</body></html>";
+  $logname = "auto-schedule " . $title . ".log";
+  $logpath = "public://" . $logname;
+  $log = file_save_data($text, $logpath, FILE_EXISTS_REPLACE);
+//  $link = $log->url( );
+  $msg = t("A log of auto-schedule activity for '@title' has been written to '@logname'.", array('@title' => $title, '@logname' => $logpath));
+  drupal_set_message($msg, 'info');
+
   }
-  
+
   /**
    * Checks object access.
    */

@@ -4,6 +4,7 @@ label: 'Update volunteer info'
 status: true
 langcode: en
 type: user
+weight: 50
 plugin: update_volunteer
 dependencies:
   module:

@@ -4,6 +4,7 @@ label: 'Assign the ACTIVE volunteer as MANAGER of selected performance(s)'
 status: true
 langcode: en
 type: node
+weight: 0
 plugin: assign_manager_to_performance
 dependencies:
   module:

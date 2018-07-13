@@ -4,6 +4,7 @@ label: 'Assign the ACTIVE volunteer team as MONITORS for selected performance(s)
 status: true
 langcode: en
 type: node
+weight: 0
 plugin: assign_monitor_to_performance
 dependencies:
   module:

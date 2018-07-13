@@ -28,6 +28,7 @@ class CalcAvailability extends ActionBase {
   
   const WRONG_DOW = 50;       // if volunteer does not normally work this DOW, add this value to their score.
   const PARTNER_ADJ = 75;     // if volunteer is a partner, add this value to their score.
+  const MANAGER_ADJ = 25;     // if volunteer is a managher, add this value to their score.
 
   const ONE_DAY = 24. * 60. * 60;                                            // number of seconds in one day
   const WINDOW_DAYS = 30;                                                    // windows is +/- 30 days

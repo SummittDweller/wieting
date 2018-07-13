@@ -49,15 +49,28 @@ function wieting_mail($key, &$message, $params) {
  }
 }
 
+/**
+ * Implements hook_module_implements_alter
+ * Ensures our form_alter runs after VBO
+ *
+function wieting_module_implements_alter(&$implementations, $hook) {
+  if ($hook == 'form_alter') {
+    if(isset($implementations['wieting'])){
+      $group = $implementations['wieting'];
+      unset($implementations['wieting']);
+      $implementations['wieting'] = $group;
+    }
+  }
+}
+
 
 /**
  * Implements hook_form_alter().
  *
-function wieting_form_alter(&$form, \Drupal\Core\Form\FormStateInterface\FormStateInterface $form_state, $form_id) {
+function wieting_form_alter(&$form, \Drupal\Core\Form\FormStateInterface $form_state, $form_id) {
   switch ($form_id) {
     // Alter login form and add own custom submit handler.
     case 'user_login_form':
-      $form['#submit'][] = '_wieting_user_login_form_submit';
       break;
   }
 }

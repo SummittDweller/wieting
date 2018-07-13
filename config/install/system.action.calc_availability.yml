@@ -4,6 +4,7 @@ label: 'Calculate volunteer availability scores for selected performance(s)'
 status: true
 langcode: en
 type: node
+weight: -60
 plugin: calc_availability
 dependencies:
   module:

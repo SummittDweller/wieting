@@ -4,6 +4,7 @@ label: 'Create a set of performances for selected show(s)'
 status: true
 langcode: en
 type: node
+weight: 20
 plugin: create_show_performances
 dependencies:
   module:

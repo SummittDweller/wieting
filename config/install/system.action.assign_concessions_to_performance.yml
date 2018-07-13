@@ -4,6 +4,7 @@ label: 'Assign the ACTIVE volunteer team as CONCESSIONS for selected performance
 status: true
 langcode: en
 type: node
+weight: 0
 plugin: assign_concessions_to_performance
 dependencies:
   module:

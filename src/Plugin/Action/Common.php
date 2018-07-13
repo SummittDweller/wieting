@@ -76,11 +76,11 @@ class Common {
         }
       }
     }
-  
+
     $msg = "$found volunteer reminders were processed and dispatched.";
     drupal_set_message($msg);
     \Drupal::logger('wieting')->notice($msg);
-   
+
   }
 
 
@@ -92,7 +92,7 @@ class Common {
    */
   public static function remindAssignedVolunteers($performance, $testing=FALSE) {
     $done = 0;
-    
+
     // ksm($performance);
     $count = $performance->get('field_reminders_pending')->getValue( );
     $pending = $count[0]['value'];
@@ -118,7 +118,7 @@ class Common {
       }
       $vars['@role'] = $role;
       $vars['@title'] = $title = $performance->getTitle();
-  
+
       // For each volunteer in the role...
       foreach ($volunteers as $volunteer) {
         // ksm($volunteer);
@@ -144,7 +144,7 @@ class Common {
 
           $vars['@partner'] = $special;
           $vars['@are'] = 'are';
-          
+
           // Inform the manager too!
           $mgr = $performance->get('field_volunteer_manager')->getValue( );
           $mID = (int) $mgr[0]['target_id'];
@@ -163,16 +163,16 @@ class Common {
         }
 
         $msg = t($message, $vars);
-        
+
         Common::dispatchReminder($uid, $user, $title, $msg, $testing);
         $done++;
-        
+
         // If necessary, send the partner a reminder...
         if ($pID && ($user = \Drupal\user\Entity\User::load($pID))) {
           Common::dispatchReminder($pID, $user, $title, $msg, $testing);
           $done++;
         }
-  
+
         // If necessary, send the manager a SEPCIAL reminder...
         if ($mID && ($user = \Drupal\user\Entity\User::load($mID))) {
           Common::dispatchReminder($mID, $user, $title, $msg, $testing);
@@ -181,7 +181,7 @@ class Common {
 
       }
     }
-  
+
     // Decrement the number of pending reminders and update
     if (!$testing) {
       $pending--;
@@ -191,8 +191,8 @@ class Common {
 
     return $done;
   }
-  
-  
+
+
   /** dispatchReminder -------------------------------------------------------------
    *
    * @param $uid
@@ -254,8 +254,8 @@ class Common {
     }
 
   }
-  
-  
+
+
   /** getBufferdedText --------------------------------------------------------------------------
    *
    * Gets the buffered text from the Wieting tempstore and wieting_buffered_text.
@@ -286,21 +286,21 @@ class Common {
   }
 
 
-  /** appendBufferdedText --------------------------------------------------------------------------
+  /** appendBufferedText --------------------------------------------------------------------------
    *
    * Appends $text to the buffered text in Wieting tempstore and wieting_buffered_text.
    */
   public static function appendBufferedText($text) {
     $tempstore = \Drupal::service('user.private_tempstore')->get('wieting');
     if ($buffer = Common::getBufferedText()) {
-      $buffer .= "\n\n" . $text;
+      $buffer .= "<br/>" . $text;
     } else {
       $buffer = $text;
     }
     Common::setBufferedText($buffer);
   }
-  
-  
+
+
   /** getActiveUID --------------------------------------------------------------------------
    *
    * Gets the UID of the ACTIVE user.  If none is set this returns FALSE.  Use advanceActiveUID to
@@ -315,7 +315,7 @@ class Common {
     }
     return FALSE;
   }
-  
+
   /** advanceActiveUID --------------------------------------------------------------------------
    *
    * Advamces the ACTIVE user ID unless there is only one ACTIVE ID and it is the currentUser.
@@ -332,8 +332,8 @@ class Common {
     return;
   }
 
-  
-  
+
+
   /** createOnePerformance --------------------------------------------------------------------------
    *
    * @param $entity
@@ -389,7 +389,7 @@ class Common {
     }
     $node->save();
   }
-  
+
   /** allowedVolunteerRole --------------------------------------------------------------------------
    *
    * @param $uid
@@ -403,13 +403,13 @@ class Common {
     $name = $user->get('name')->value;
     $roles = $user->getRoles( );
     // ksm("allowedVolunteerRole roles...", $roles);
-    
+
     // If the user is blocked...issue a message and return false.
     if (user_is_blocked($name)) {
       if (!$silent) { drupal_set_message("Sorry, the account for '$name' is currently blocked.", 'warning'); }
       return false;
     }
-  
+
     // If the user is a manager they can do it all...return true.  If they are a volunteer then keep checking.
     $volunteer = false;
     foreach ($roles as $user_role) {
@@ -420,13 +420,13 @@ class Common {
         break;
       }
     }
-    
+
     // Not a volunteer...issue a message and return false.
     if (!$volunteer) {
       if (!$silent) { drupal_set_message("Sorry, '$name' is not currently listed as a volunteer.", 'warning'); }
       return false;
     }
-  
+
     // Get this volunteer's roles
     $vRoles = $user->get('field_volunteer_roles')->getValue( );
     $partner = FALSE;
@@ -438,16 +438,16 @@ class Common {
       if ($role === 'ticket_seller' && $vR['target_id'] === Common::TICKET_SELLER) { return TRUE; }
       if ($vR['target_id'] === Common::PARTNER) { $partner = TRUE; }
     }
-    
+
     // Nothing yet... if this is a concessions or monitor assignment and the ACTIVE volunteer is a partner,
     // make a special assignment in this case.
     if (($role === 'concessions' || $role === 'monitor') && $partner) { return TRUE; }
-    
+
     if (!$silent) { drupal_set_message("Sorry, '$name' is not currently listed for the role of $role.", 'warning'); }
     return false;
   }
-  
-  
+
+
   /** isPartner -------------------------------------------------------------------------------------
    *
    * @param $user - The volunteer's user object/
@@ -463,8 +463,26 @@ class Common {
     }
     return false;
   }
-  
-  
+
+
+  /** isManager -------------------------------------------------------------------------------------
+   *
+   * @param $user - The volunteer's user object/
+   * @return bool
+   */
+  public static function isManager($user) {
+    $vRoles = $user->get('field_volunteer_roles')->getValue( );
+    // $roles = $user->getRoles( );
+    // $name = $user->get('name')->value;
+    foreach ($vRoles as $key => $vR) {
+      if ($vR['target_id'] === Common::MANAGER) { return TRUE; }
+      // drupal_set_message("$name has the role of $user_role");
+    }
+    return false;
+  }
+
+
+
   /** specialPartnerAssignment --------------------------------------------------------------------------
    *
    * @param $uid
@@ -479,15 +497,15 @@ class Common {
     $user = \Drupal\user\Entity\User::load($uid);
     $name = $user->get('name')->value;
     $roles = $user->getRoles( );
-    
+
     // If the user is blocked...issue a message and return false.
     if (user_is_blocked($name)) {
       drupal_set_message("Sorry, the account for '$name' is currently blocked.", 'warning');
       return false;
     }
-  
+
     $partner = FALSE;
-  
+
     // If the user is a manager they can do it all...replace the partner and return a special string.  If they are a
     // volunteer then keep checking.
     $volunteer = false;
@@ -497,13 +515,13 @@ class Common {
         break;
       }
     }
-    
+
     // Not a volunteer...issue a message and return false.
     if (!$volunteer) {
       drupal_set_message("Sorry, '$name' is not currently listed as a volunteer.", 'warning');
       return false;
     }
-    
+
     // Get this volunteer's roles...see if they can be a partner
     $vRoles = $user->get('field_volunteer_roles')->getValue( );
     foreach ($vRoles as $key => $vR) {
@@ -511,17 +529,17 @@ class Common {
         $partner = TRUE;
       }
     }
-    
+
     if (!$partner) { return FALSE; }
-    
+
     // OK, this is a concessions or monitor assignment and the ACTIVE volunteer can be a partner,
     // make a special assignment in this case.  @TODO
     $special = "Making a special $role assignment.";
     return $special;
-    
+
   }
-  
-  
+
+
   /** isHelpNeeded --------------------------------------------------------------------------
    *
    * @param $role
@@ -537,7 +555,7 @@ class Common {
     } else {
       $admin = $user->hasPermission('manage performances');
     }
-  
+
     $perf = $performance->getTitle( );
     $assigned = $performance->get('field_volunteer_'.$role)->getValue( );
     $assigned_id = $assigned[0]['target_id'];         // @TODO...looks only at the first assigned
@@ -553,8 +571,8 @@ class Common {
     drupal_set_message("Sorry, the role of '$role' is already filled for the '$perf' performance.", 'warning');
     return false;
   }
-  
-  
+
+
   /** allowedPerformanceDate --------------------------------------------------------------------------
    *
    * @param $uid
@@ -564,7 +582,7 @@ class Common {
   public static function allowedPerformanceDate($uid, $performance) {
     // This function is NOT called during auto-scheduling so I'm commenting out the check and returning
     // true in all cases.  Effectively a volunteer's DOW selections only effect auto-scheduling.
-    
+
     /* If the ACTIVE user IS the currentUser, then allow overriding available days/times!
     $current_uid = \Drupal\user\Entity\User::load(\Drupal::currentUser()->id());
     if ($uid === $current_uid) { return true; } */
@@ -580,9 +598,9 @@ class Common {
       drupal_set_message("Note that '$name' is not generally available for a $target performance.", 'warning');
       // return FALSE;
     }
-  
+
     return true;
-  
+
   }
 
 
@@ -607,7 +625,7 @@ class Common {
     return false;
   }
 
-  
+
   /** activeIsCurrent
    *
    *  Returns true if the ACTIVE user is also the current user.
@@ -621,8 +639,8 @@ class Common {
     }
     return FALSE;
   }
-  
-  
+
+
   /** setPerformanceRole --------------------------------------------------------------------------
    *
    * @param $uid
@@ -637,15 +655,15 @@ class Common {
     $username = $user->getUsername( );
     $pid = $performance->id( );
     $title = $performance->getTitle( );
-    
+
     if (self::activeIsCurrent( )) {
       $msg = "You are ";
     } else {
       $msg = $user->get('name')->value . " is ";
     }
-  
+
     $node = \Drupal\node\Entity\Node::load($pid);       // ...performance exists, load it for update.
-  
+
     // Remove the user ID from the blocked volunteers data if it's already there
     if ($role === 'unblock') {      // Remove the user ID from the performance's list of blocked volunteers
       $blocked_volunteers = $performance->get('field_blocked_volunteers')->getValue();
@@ -660,7 +678,7 @@ class Common {
         }
       }
       $node->set('field_blocked_volunteers', $blocked_volunteers);
-      
+
     // Add the user ID to the blocked volunteers data if it's not already there
     } else if ($role === 'blocked') {      // Add the user ID to the performance's list of blocked volunteers
       $blocked_volunteers = $performance->get('field_blocked_volunteers')->getValue( );
@@ -699,44 +717,53 @@ class Common {
     $node->save( );
 
   }
-  
-  
+
+
   /** updateAvailability(&$entity) ---------------------------------------------------
    *
    * @param $entity - The performance node to be updated.
    */
   public static function updateAvailability(&$entity) {
+    $title = $entity->getTitle( );
+    $msg = "This is \\Drupal\\wieting\\Plugin\\Action\\Common\\updateAvailability working on '$title'.";
+    \Drupal\wieting\Plugin\Action\Common::appendBufferedText($msg);
+    // drupal_set_message($msg);
+
     $times = $entity->get('field_performance_times')->getValue();
     $utcTarget = strtotime($times[0]['value'] . " UTC");
-  
+
     // Find all performances (published or not) within +/- WINDOW days of this performance
     $performances = $list = \Drupal::entityQuery('node')
       ->condition('type', 'performance')
       ->execute();
     // ksm($performances);
-  
+
     $scores = array();          // empty array of volunteer scores
     $names = array();
     $availability = array();
     $inWindow = array();
-  
+
     // Drop performances that are outside the calculation WINDOW
     foreach ($list as $n => $perf) {
       $node = \Drupal\node\Entity\Node::load($perf);
-      $title = $node->getTitle();
+      $pt = $node->getTitle( );
       $val = $node->get('field_performance_times')->getValue();
       $perfTime = $val[0]['value'];
       $utc = strtotime($perfTime . " UTC");
       $diff = $utcTarget - $utc;
       // ksm($utcTarget, $utc, $diff, CalcAvailability::WINDOW);
       if ($diff < -CalcAvailability::WINDOW || $diff > CalcAvailability::WINDOW) {
+        $msg = "IGNORED: The performance at '$pt' is outside the calculation window and will be IGNORED.";
+        \Drupal\wieting\Plugin\Action\Common::appendBufferedText($msg);
         unset($performances[$n]);
       } else {
         $days = (int) $diff / CalcAvailability::ONE_DAY;
         $inWindow[$days] = $node;
+        $msg = "IN RANGE: The performance at '$pt', $days days from the target, is INSIDE the calculation window and will be considered.";
+        \Drupal\wieting\Plugin\Action\Common::appendBufferedText($msg);
       }
     }    // ksm($performances);
-  
+
     // Find all active volunteers...
     $volunteers = \Drupal::entityQuery('user')
       ->condition('status', 1)
@@ -744,16 +771,16 @@ class Common {
       ->execute();
     // $volunteers = User::loadMultiple($ids);
     // ksm($volunteers);
-  
+
     // Get the list of volunteers blocked from this performance
     $blocked_volunteers = $entity->get('field_blocked_volunteers')->getValue();
     // ksm($volunteers);
     // ksm($blocked_volunteers);
-  
+
     // Loop on all active volunteers.
     foreach ($volunteers as $v => $vol) {
       // drupal_set_message("v and vol are: $v and $vol", 'info');
-    
+
       // If this volunteer is blocked from the target performance, skip them entirely.
       $matched = FALSE;
       foreach ($blocked_volunteers as $key => $target) {
@@ -763,32 +790,48 @@ class Common {
           $matched = TRUE;
           $b = \Drupal\user\Entity\User::load($blocked_id);
           $name = $b->get('name')->value;
-          drupal_set_message("Volunteer $name is BLOCKED from the target performance.", 'info');
+          $msg = "Volunteer $name is BLOCKED from the target performance.";
+          \Drupal\wieting\Plugin\Action\Common::appendBufferedText($msg);
           break;
         }
       }
-      
+
       if ($matched) { continue; }   // volunteer is blocked, skip 'em
-      
+
       // Load the $user data and do more checking
       $user = \Drupal\user\Entity\User::load($vol);
       $name = $user->getUsername();
+
       if ($adjust = $user->get('field_availability_adjustment')->getValue()) {
         $score = (int) $adjust[0]['value'];
       } else {
         $score = 0;    // the volunteer's initial score
       }
-    
+
+      $msg = "Considering volunteer $name for the target performance. Their adjusted/initial score is: $score.";
+      \Drupal\wieting\Plugin\Action\Common::appendBufferedText($msg);
+
       // If the user is a partner...add PARTNER_ADJ to their score so they are not likely to be scheduled.
       if (Common::isPartner($user)) {
         $score += CalcAvailability::PARTNER_ADJ;
+        $msg = "Volunteer $name is a PARTNER.  Their revised score is: $score.";
+        \Drupal\wieting\Plugin\Action\Common::appendBufferedText($msg);
       }
-      
+
+      // If the user is a manager...add MANAGER_ADJ to their score so they are not likely to be scheduled.
+      if (Common::isManager($user)) {
+        $score += CalcAvailability::MANAGER_ADJ;
+        $msg = "Volunteer $name is a MANAGER.  Their revised score is: $score.";
+        \Drupal\wieting\Plugin\Action\Common::appendBufferedText($msg);
+      }
+
       // If the user does not normally work this DOW...add WRONG_DOW to their score.
       if (!Common::normalPerformanceDate($user, $entity, $target)) {
         $score += CalcAvailability::WRONG_DOW;
+        $msg = "Volunteer $name does not work this day-of-the-week.  Their revised score is: $score.";
+        \Drupal\wieting\Plugin\Action\Common::appendBufferedText($msg);
       }
-    
+
       // Inner loop through window of performances. If the volunteer worked another performance, calculate the
       // number of days between this performance and that as $days and add WINDOW - $days to their score.
       $team = array();
@@ -797,48 +840,65 @@ class Common {
         foreach ($team as $t) {
           if ($t['target_id'] === $vol) {
             $score += CalcAvailability::WINDOW_DAYS - abs($n);
+            $msg = "Volunteer $name is/was a MANAGER $n days from the target.  Their revised score is: $score.";
+            \Drupal\wieting\Plugin\Action\Common::appendBufferedText($msg);
           }
         }
         $team = $perf->get('field_volunteer_monitor')->getValue();
         foreach ($team as $t) {
           if ($t['target_id'] === $vol) {
             $score += CalcAvailability::WINDOW_DAYS - abs($n);
+            $msg = "Volunteer $name is/was a MONITOR $n days from the target.  Their revised score is: $score.";
+            \Drupal\wieting\Plugin\Action\Common::appendBufferedText($msg);
           }
         }
         $team = $perf->get('field_volunteer_concessions')->getValue();
         foreach ($team as $t) {
           if ($t['target_id'] === $vol) {
             $score += CalcAvailability::WINDOW_DAYS - abs($n);
+            $msg = "Volunteer $name is/was in CONCESSIONS $n days from the target.  Their revised score is: $score.";
+            \Drupal\wieting\Plugin\Action\Common::appendBufferedText($msg);
           }
         }
         $team = $perf->get('field_volunteer_ticket_seller')->getValue();
         foreach ($team as $t) {
           if ($t['target_id'] === $vol) {
             $score += CalcAvailability::WINDOW_DAYS - abs($n);
+            $msg = "Volunteer $name is/was a TICKET SELLER $n days from the target.  Their revised score is: $score.";
+            \Drupal\wieting\Plugin\Action\Common::appendBufferedText($msg);
           }
         }
       }
-    
+
       // Add this volunteer and their score to the $scores array as $vol => $score.
       // drupal_set_message("Score for $name is $score.");
       $scores[$vol] = $score;
       $names[$vol] = $name;
+      $msg = "Adding volunteer $name to the available list with a score of: $score.";
+      \Drupal\wieting\Plugin\Action\Common::appendBufferedText($msg);
+
     }
-  
+
     unset($entity->field_availability_scores);
-  
+
     // Sort $scores by ASCENDING value and save each name|uid|score triplet in field_availability_scores
     if (!asort($scores)) {
       drupal_set_message('$scores could not be sorted!', 'error');
     }
+
+    $msg = "\n\nThe sorted volunteer availability list for '$title' is: \n";
+    \Drupal\wieting\Plugin\Action\Common::appendBufferedText($msg);
+
     foreach ($scores as $v => $score) {
       $entity->field_availability_scores->appendItem("$names[$v]|$v|$score");
+      $msg = "$names[$v] (uid=$v) Score = $score";
+      \Drupal\wieting\Plugin\Action\Common::appendBufferedText($msg);
     }
-  
+
     $entity->save( );
   }
-  
-  
+
+
   /**
    * Checks object access.
    *
@@ -856,8 +916,19 @@ class Common {
     }
     return FALSE;
   }
-  
-  
+
+  /**
+   * Checks object MANAGER access.
+   *
+   * @param mixed $object
+   *   The object to check access for.
+   */
+  public static function hasManageAccess($object) {
+    $current = \Drupal::currentUser( )->id( );
+    $account = \Drupal\user\Entity\User::load($current);
+    return $account->hasPermission('manage performances');
+  }
+
 }
 
 ?>

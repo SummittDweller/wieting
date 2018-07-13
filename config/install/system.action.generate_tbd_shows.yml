@@ -4,6 +4,7 @@ label: 'Generate 3 months of TBD shows'
 status: true
 langcode: en
 type: node
+weight: 30
 plugin: generate_tbd_shows
 dependencies:
   module:

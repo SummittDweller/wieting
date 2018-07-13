@@ -4,6 +4,7 @@ label: 'Block the ACTIVE volunteer from working the selected performance(s)'
 status: true
 langcode: en
 type: node
+weight: 0
 plugin: block_volunteer_from_performance
 dependencies:
   module:

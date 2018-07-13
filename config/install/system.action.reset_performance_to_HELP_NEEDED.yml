@@ -1,0 +1,11 @@
+# Lifted from https://www.drupal.org/node/2330631
+id: reset_performance_to_HELP_NEEDED
+label: 'Reset all roles to HELP NEEDED for selected performance(s)'
+status: true
+langcode: en
+type: node
+plugin: reset_performance_to_HELP_NEEDED
+weight: -40
+dependencies:
+  module:
+    - node

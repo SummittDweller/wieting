@@ -3,6 +3,7 @@ label: 'Select the ACTIVE Wieting volunteer(s).  Pick as many as you like!'
 status: true
 langcode: en
 type: user
+weight: 5
 plugin: select_volunteer
 dependencies:
   module:
