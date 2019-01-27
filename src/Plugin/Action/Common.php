@@ -11,6 +11,8 @@ namespace Drupal\wieting\Plugin\Action;
 use Drupal\wieting\Controller\WietingController;
 use Drupal\node\Entity\Node;
 use Drupal\user\Entity\User;
+use \DateTime;
+use \DateTimeZone;
 
 
 /**
@@ -37,192 +39,298 @@ class Common {
   const TICKET_SELLER = "67";   // term ID of TICKET_SELLER
   const PARTNER = "74";         // term ID of PARTNER
 
+/** convertFieldToDateTime --------------------------------------------------------------------------
+ *
+ * @param $event - Event date/time in UTC 'Y-m-d\TH:i:s' format.
+ * @return - Equivalent DateTime object in the local timezone.
+ */
+public static function convertFieldToDateTime($event) {
+  // ksm("convertFieldToDateTime:event", $event);
+  $dt = str_replace('T',' ',$event);  // remove 'T' from the field string
+  $utc = new DateTime($dt, new DateTimeZone('UTC'));
+  // ksm("convertFieldToDateTime:utc", $utc);
+  $local = $utc->setTimezone(new DateTimeZone('America/Chicago'));
+  // ksm("convertFieldToDateTime:local", $local);
+  return $local;
+}
+
+/** convertTitleToDateTime --------------------------------------------------------------------------
+ *
+ * @param $event - Event date/time in local 'l, F j, Y - g A' format.
+ * @return - Equivalent DateTime object.
+ */
+public static function convertTitleToDateTime($event) {
+  // ksm("convertTitleToDateTime:event", $event);
+  $utc = DateTime::createFromFormat('l, F j, Y - g A', $event)->setTimezone(new DateTimeZone('UTC'));
+  // ksm("convertTitleToDateTime:utc", $utc);
+  $local = $utc->setTimezone(new DateTimeZone('America/Chicago'));
+  // ksm("convertTitleToDateTime:local", $local);
+  return $local;
+}
+
+/** convertDTtoField --------------------------------------------------------------------------
+ *
+ * @param $event - Event DateTime in local timezone.
+ * @return - Equivalent field-formatted UTC date/time in 'Y-m-d\TH:i:s' format.
+ */
+public static function convertDTtoField($event) {
+  // ksm("convertDTtoField:event", $event);
+  $utc = $event->setTimezone(new DateTimeZone('UTC'));
+  // ksm("convertDTtoField:utc", $utc);
+  $ret = $utc->format("Y-m-d\TH:i:s");
+  // ksm("convertDTtoField:ret", $ret);
+  return $ret;
+}
+
+
+/** createOnePerformance --------------------------------------------------------------------------
+   *
+   * @param $entity
+   * @param $title
+   * @param $final
+   */
+  public static function createOnePerformance($entity, $title, $final) {
+
+    $start = self::convertTitleToDateTime($title);
+    // ksm("createOnePerfornamce:start", $start);
+    $beginS = self::convertDTtoField($start);
+    // ksm("createOnePerfornamce:beginS", $beginS);
+
+    // Check if the performance already exists, load if not or create if necessary.
+    $values = \Drupal::entityQuery('node')
+      ->condition('type', 'performance')
+      ->condition('title', $title)
+      ->execute();
+    if ($node_exists = !empty($values)) {
+      $new = FALSE;
+      $nid = $values[key($values)];
+      $node = \Drupal\node\Entity\Node::load($nid);         // ...performance exists, load it for update.
+      // ksm("Common::createOnePerformance existing node...", $node);
+    } else {
+      $new = TRUE;
+      $node = \Drupal\node\Entity\Node::create(array(       // ...performance doesn't exist, create it.
+        'type' => 'performance',
+        'title' => $title,
+        'langcode' => 'en',
+        'uid' => '1',
+        'status' => 1,
+      ));
+    }
+
+    // Pass the show's format on to the performance...except if the show is 3D and this is the final performance.
+    $format = $entity->get('field_format')->value;
+    if ($format === '3D' && $final) { $format = '2D'; }
+
+    // Complete the performance info assigning HELP NEEDED to all roles.
+    $node->field_show->entity = $entity;
+    $running = intval($entity->get('field_running_time')->value);
+    // ksm("createOnePerfornamce:running", $running);
+    $end = $start->modify("+$running minutes");
+    // ksm("createOnePerfornamce:end", $end);
+    $endS = self::convertDTtoField($end);
+    // ksm("createOnePerfornamce:endS", $endS);
+    $node->set('field_performance_times', $beginS);
+    $node->set('field_performance_ends', $endS);
+    $node->set('field_final_wieting_performance_', $final);
+    $node->set('field_format', $format);
+    $local = $start->setTimezone(new DateTimeZone('America/Chicago'));
+    $node->set('field_performance_date', $local->format("Y-m-d"));  // @TODO Kept to overcome Views calendar BUG
+    $node->set('field_reminders_pending',2);
+    if ($new) {
+      $node->set('field_volunteer_manager', array('target_id' => Common::HELP_NEEDED));
+      $node->set('field_volunteer_monitor', array('target_id' => Common::HELP_NEEDED));
+      $node->set('field_volunteer_concessions', array('target_id' => Common::HELP_NEEDED));
+      $node->set('field_volunteer_ticket_seller', array('target_id' => Common::HELP_NEEDED));
+    }
+    $node->save();
+  }
+
+
 /** dispatchVolunteerReminders ------------------------------------------------------------
  *
  */
-  public static function dispatchVolunteerReminders( ) {
-    // Find all published performances...
-    $values = \Drupal::entityQuery('node')
-      ->condition('type', 'performance')
-      ->condition('status', 1)                       // published
-      ->execute();
+public static function dispatchVolunteerReminders( ) {
+  // Find all published performances...
+  $values = \Drupal::entityQuery('node')
+    ->condition('type', 'performance')
+    ->condition('status', 1)                       // published
+    ->execute();
 
-    // Now test to find any that are less than 6 days or 2 days away WITH pending notifications.
-    $now = time();
-    $found = 0;
+  // Now test to find any that are less than 6 days or 2 days away WITH pending notifications.
+  $now = time();
+  $found = 0;
 
-    foreach ($values as $n => $nid) {
-      $node = \Drupal\node\Entity\Node::load($nid);
-      $title = $node->getTitle( );
-      // drupal_set_message("Found published performance node '$nid' with a title of '$title'.");
+  foreach ($values as $n => $nid) {
+    $node = \Drupal\node\Entity\Node::load($nid);
+    $title = $node->getTitle( );
+    // drupal_set_message("Found published performance node '$nid' with a title of '$title'.");
 
-      // Get performance times
-      $val = $node->get('field_performance_times')->getValue();
-      $perfTime = $val[0]['value'];
-      $utc = strtotime($perfTime . " UTC");
-      $diff = $utc - $now;
-      // drupal_set_message("__Now, utc, and diff are: $now, $utc, $diff.");
+    // Get performance times
+    $val = $node->get('field_performance_times')->getValue();
+    $perfTime = $val[0]['value'];
+    $utc = strtotime($perfTime . " UTC");
+    $diff = $utc - $now;
+    // drupal_set_message("__Now, utc, and diff are: $now, $utc, $diff.");
 
-      // Test for less than 6 days out... if yes, fetch the reminders_pending counter.
-      if ($diff < Common::SIX_DAYS) {
-        $value = $node->get('field_reminders_pending')->getValue( );
-        $pending = (int) $value[0]['value'];
-        if ($pending == 2) {
-          drupal_set_message("Published performance node '$nid' with a title of '$title' is less than 6 days away and has a pending reminder.");
-          $found += Common::remindAssignedVolunteers($node);
-        } else if (($diff < Common::TWO_DAYS) && ($pending > 0)) {
-          drupal_set_message("Published performance node '$nid' with a title of '$title' is less than TWO days away and has a pending reminder!");
-          $found += Common::remindAssignedVolunteers($node);
-        }
+    // Test for less than 6 days out... if yes, fetch the reminders_pending counter.
+    if ($diff < Common::SIX_DAYS) {
+      $value = $node->get('field_reminders_pending')->getValue( );
+      $pending = (int) $value[0]['value'];
+      if ($pending == 2) {
+        drupal_set_message("Published performance node '$nid' with a title of '$title' is less than 6 days away and has a pending reminder.");
+        $found += Common::remindAssignedVolunteers($node);
+      } else if (($diff < Common::TWO_DAYS) && ($pending > 0)) {
+        drupal_set_message("Published performance node '$nid' with a title of '$title' is less than TWO days away and has a pending reminder!");
+        $found += Common::remindAssignedVolunteers($node);
       }
     }
-
-    $msg = "$found volunteer reminders were processed and dispatched.";
-    drupal_set_message($msg);
-    \Drupal::logger('wieting')->notice($msg);
-
   }
 
+  $msg = "$found volunteer reminders were processed and dispatched.";
+  drupal_set_message($msg);
+  \Drupal::logger('wieting')->notice($msg);
+}
 
-  /** remindAssignedVolunteers -----------------------------------------------------------------
-   *
-   * @param $performance - The performance node.
-   * @param $testing - Set TRUE for testing only.
-   *
-   */
-  public static function remindAssignedVolunteers($performance, $testing=FALSE) {
-    $done = 0;
 
-    // ksm($performance);
-    $count = $performance->get('field_reminders_pending')->getValue( );
-    $pending = $count[0]['value'];
+/** remindAssignedVolunteers -----------------------------------------------------------------
+*
+* @param $performance - The performance node.
+* @param $testing - Set TRUE for testing only.
+*
+*/
+public static function remindAssignedVolunteers($performance, $testing=FALSE) {
+  $done = 0;
 
-    $roles = array("as the manager" => $performance->get('field_volunteer_manager')->getValue(),
-                   "as monitors" => $performance->get('field_volunteer_monitor')->getValue(),
-                   "in concessions" => $performance->get('field_volunteer_concessions')->getValue(),
-                   "as the ticket seller" => $performance->get('field_volunteer_ticket_seller')->getValue());
+  // ksm($performance);
+  $count = $performance->get('field_reminders_pending')->getValue( );
+  $pending = $count[0]['value'];
 
-    $message = "This is a @friendly reminder that @partner @are scheduled to work @role for the Wieting performance on @title.  You can check and manage your schedule at https://wieting.tamatoledo.com/calendar-assignments/month. Please do not reply to this email unless you need assistance with your schedule.\r\n\r\n\r\nThank you for being one of THE BEST, a Wieting Theatre volunteer!";
+  $roles = array("as the manager" => $performance->get('field_volunteer_manager')->getValue(),
+                 "as monitors" => $performance->get('field_volunteer_monitor')->getValue(),
+                 "in concessions" => $performance->get('field_volunteer_concessions')->getValue(),
+                 "as the ticket seller" => $performance->get('field_volunteer_ticket_seller')->getValue());
 
-    // For each volunteer role...
-    foreach ($roles as $role => $volunteers) {
-      $vars['@friendly'] = 'friendly';
-      $vars['@are'] = 'are';
+  $message = "This is a @friendly reminder that @partner @are scheduled to work @role for the Wieting performance on @title.  You can check and manage your schedule at https://wieting.tamatoledo.com/calendar-assignments/month. Please do not reply to this email unless you need assistance with your schedule.\r\n\r\n\r\nThank you for being one of THE BEST, a Wieting Theatre volunteer!";
 
-      if (substr($role, -1) === 's') {
-        $team = TRUE;
-        $vars['@partner'] = 'you and your partner';
+  // For each volunteer role...
+  foreach ($roles as $role => $volunteers) {
+    $vars['@friendly'] = 'friendly';
+    $vars['@are'] = 'are';
+
+    if (substr($role, -1) === 's') {
+      $team = TRUE;
+      $vars['@partner'] = 'you and your partner';
+    } else {
+      $team = FALSE;
+      $vars['@partner'] = 'you';
+    }
+    $vars['@role'] = $role;
+    $vars['@title'] = $title = $performance->getTitle();
+
+    // For each volunteer in the role...
+    foreach ($volunteers as $volunteer) {
+      // ksm($volunteer);
+      $pID = FALSE;
+      $mID = FALSE;
+      $uid = $volunteer['target_id'];
+
+      // Is this a SPECIAL volunteer, aka FLOATER or PARENT?
+      if ($uid === Common::FLOATER || $uid === Common::PARENT) {
+        $vars['@friendly'] = 'SPECIAL';
+        $special = 'NOBODY';
+        $vars['@are'] = 'is';
+
+        if ($role === 'in concessions') {
+          if ($s = $performance->get('field_special_concessions')->getValue( )) {
+            $special = $s[0]['value'];
+          }
+        } else if ($role === 'as monitors') {
+          if ($s = $performance->get('field_special_monitors')->getValue()) {
+            $special = $s[0]['value'];
+          }
+        }
+
+        $vars['@partner'] = $special;
+        $vars['@are'] = 'are';
+
+        // Inform the manager too!
+        $mgr = $performance->get('field_volunteer_manager')->getValue( );
+        $mID = (int) $mgr[0]['target_id'];
+
+        // ksm("special...", $special);
+
+      // Not a special...
+      } else if ($user = \Drupal\user\Entity\User::load($uid)) {
+        if ($team && ($partner = $user->get('field_has_partner')->getValue())) {       // role needs a partner
+          $pID = (int) $partner[0]['target_id'];
+        }
+
+      // Could not load the volunteer...
       } else {
-        $team = FALSE;
-        $vars['@partner'] = 'you';
+        continue;
       }
-      $vars['@role'] = $role;
-      $vars['@title'] = $title = $performance->getTitle();
 
-      // For each volunteer in the role...
-      foreach ($volunteers as $volunteer) {
-        // ksm($volunteer);
-        $pID = FALSE;
-        $mID = FALSE;
-        $uid = $volunteer['target_id'];
+      $msg = t($message, $vars);
 
-        // Is this a SPECIAL volunteer, aka FLOATER or PARENT?
-        if ($uid === Common::FLOATER || $uid === Common::PARENT) {
-          $vars['@friendly'] = 'SPECIAL';
-          $special = 'NOBODY';
-          $vars['@are'] = 'is';
+      Common::dispatchReminder($uid, $user, $title, $msg, $testing);
+      $done++;
 
-          if ($role === 'in concessions') {
-            if ($s = $performance->get('field_special_concessions')->getValue( )) {
-              $special = $s[0]['value'];
-            }
-          } else if ($role === 'as monitors') {
-            if ($s = $performance->get('field_special_monitors')->getValue()) {
-              $special = $s[0]['value'];
-            }
-          }
-
-          $vars['@partner'] = $special;
-          $vars['@are'] = 'are';
-
-          // Inform the manager too!
-          $mgr = $performance->get('field_volunteer_manager')->getValue( );
-          $mID = (int) $mgr[0]['target_id'];
-
-          // ksm("special...", $special);
-
-        // Not a special...
-        } else if ($user = \Drupal\user\Entity\User::load($uid)) {
-          if ($team && ($partner = $user->get('field_has_partner')->getValue())) {       // role needs a partner
-            $pID = (int) $partner[0]['target_id'];
-          }
-
-        // Could not load the volunteer...
-        } else {
-          continue;
-        }
-
-        $msg = t($message, $vars);
-
-        Common::dispatchReminder($uid, $user, $title, $msg, $testing);
+      // If necessary, send the partner a reminder...
+      if ($pID && ($user = \Drupal\user\Entity\User::load($pID))) {
+        Common::dispatchReminder($pID, $user, $title, $msg, $testing);
         $done++;
-
-        // If necessary, send the partner a reminder...
-        if ($pID && ($user = \Drupal\user\Entity\User::load($pID))) {
-          Common::dispatchReminder($pID, $user, $title, $msg, $testing);
-          $done++;
-        }
-
-        // If necessary, send the manager a SEPCIAL reminder...
-        if ($mID && ($user = \Drupal\user\Entity\User::load($mID))) {
-          Common::dispatchReminder($mID, $user, $title, $msg, $testing);
-          $done++;
-        }
-
       }
-    }
 
-    // Decrement the number of pending reminders and update
-    if (!$testing) {
-      $pending--;
-      $performance->set('field_reminders_pending', $pending);
-      $performance->save();
-    }
+      // If necessary, send the manager a SEPCIAL reminder...
+      if ($mID && ($user = \Drupal\user\Entity\User::load($mID))) {
+        Common::dispatchReminder($mID, $user, $title, $msg, $testing);
+        $done++;
+      }
 
-    return $done;
+    }
   }
 
-
-  /** dispatchReminder -------------------------------------------------------------
-   *
-   * @param $uid
-   * @param $user
-   * @param $title
-   * @param $message
-   * @param $testing - Set TRUE when testing!
-   *
-   * @return bool|void
-   *
-   */
-  public static function dispatchReminder($uid, $user, $title, $message, $testing=FALSE) {
-    $name = $user->getUsername();
-    $mail = $user->getEmail();
-    // Trap 'bogus' email addresses and HELP_NEEDED.
-    if ($testing) {
-      $mail = 'mark@tamatoledo.net';
-    } else if ($uid === HELP_NEEDED || $uid === FLOATER || $uid === PARENT) {
-      $mail = 'toledowieting@gmail.com';
-    } else if (strpos("_$mail", 'bogus') > 0) {
-      $msg = "Volunteer $name has a bogus email address ($mail) so no reminder could be dispatched for $title!";
-      drupal_set_message($msg, 'warning');
-      \Drupal::logger('wieting')->warning($msg);
-      return;
-    }
-
-    // Send the reminder
-    return self::sendMail( 'volunteer_reminder', $message, $name, $mail);
-
+  // Decrement the number of pending reminders and update
+  if (!$testing) {
+    $pending--;
+    $performance->set('field_reminders_pending', $pending);
+    $performance->save();
   }
+
+  return $done;
+}
+
+
+/** dispatchReminder -------------------------------------------------------------
+ *
+ * @param $uid
+ * @param $user
+ * @param $title
+ * @param $message
+ * @param $testing - Set TRUE when testing!
+ *
+ * @return bool|void
+ *
+ */
+public static function dispatchReminder($uid, $user, $title, $message, $testing=FALSE) {
+  $name = $user->getUsername();
+  $mail = $user->getEmail();
+  // Trap 'bogus' email addresses and HELP_NEEDED.
+  if ($testing) {
+    $mail = 'mark@tamatoledo.net';
+  } else if ($uid === HELP_NEEDED || $uid === FLOATER || $uid === PARENT) {
+    $mail = 'toledowieting@gmail.com';
+  } else if (strpos("_$mail", 'bogus') > 0) {
+    $msg = "Volunteer $name has a bogus email address ($mail) so no reminder could be dispatched for $title!";
+    drupal_set_message($msg, 'warning');
+    \Drupal::logger('wieting')->warning($msg);
+   return;
+ }
+
+  // Send the reminder
+  return self::sendMail( 'volunteer_reminder', $message, $name, $mail);
+
+}
 
 
   /** sendMail
@@ -334,61 +442,6 @@ class Common {
 
 
 
-  /** createOnePerformance --------------------------------------------------------------------------
-   *
-   * @param $entity
-   * @param $title
-   * @param string $utc - Performance start time in UTC (GMT time)
-   * @param $final
-   */
-  public static function createOnePerformance($entity, $title, $utc, $final) {
-
-    // Check if the performance already exists, load if not or create if necessary.
-    $values = \Drupal::entityQuery('node')
-        ->condition('type', 'performance')
-        ->condition('title', $title)
-        ->execute();
-    if ($node_exists = !empty($values)) {
-      $new = FALSE;
-      $nid = $values[key($values)];
-      $node = \Drupal\node\Entity\Node::load($nid);         // ...performance exists, load it for update.
-      // ksm("Common::createOnePerformance existing node...", $node);
-    } else {
-      $new = TRUE;
-      $node = \Drupal\node\Entity\Node::create(array(       // ...performance doesn't exist, create it.
-        'type' => 'performance',
-        'title' => $title,
-        'langcode' => 'en',
-        'uid' => '1',
-        'status' => 1,
-      ));
-    }
-
-    // Pass the show's format on to the performance...except if the show is 3D and this is the final performance.
-    $format = $entity->get('field_format')->value;
-    if ($format === '3D' && $final) { $format = '2D'; }
-
-    // Complete the performance info assigning HELP NEEDED to all roles.
-    $node->field_show->entity = $entity;
-    $running = intval($entity->get('field_running_time')->value) * 60;
-    $end = strtotime($utc) + $running;
-    $endT = date("Y-m-d\TH:i:s", $end);
-    // ksm("utc...", $utc, "running", $running, "end...", $end, "endT...", $endT);
-    $local = strtotime($utc.' UTC');    // returns a "local" timestamp!
-    $node->set('field_performance_times', $utc);
-    $node->set('field_performance_ends', $endT);
-    $node->set('field_final_wieting_performance_', $final);
-    $node->set('field_format', $format);
-    $node->set('field_performance_date', date("Y-m-d", $local));  // @TODO Kept to overcome Views calendar BUG
-    $node->set('field_reminders_pending',2);
-    if ($new) {
-      $node->set('field_volunteer_manager', array('target_id' => Common::HELP_NEEDED));
-      $node->set('field_volunteer_monitor', array('target_id' => Common::HELP_NEEDED));
-      $node->set('field_volunteer_concessions', array('target_id' => Common::HELP_NEEDED));
-      $node->set('field_volunteer_ticket_seller', array('target_id' => Common::HELP_NEEDED));
-    }
-    $node->save();
-  }
 
   /** allowedVolunteerRole --------------------------------------------------------------------------
    *

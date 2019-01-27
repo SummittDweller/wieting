@@ -45,11 +45,13 @@ class CreatePerformances extends ActionBase {
 
     // Loop on the field_performance_times for the show.  Create one performance node for each.
     $counter = 1;
-    foreach ($fields['field_performance_times'] as $showTime) {
-      // ksm($showTime);
-      $date_time = $showTime['value'];               // UTC performance time string
-      $local = strtotime($date_time.' UTC');    // returns a "local" timestamp!
-      $performanceTitle = date('l, F j, Y - g A', $local);
+    foreach ($fields['field_performance_times'] as $st) {
+      // ksm("CreatePerformances::execute:st", $st);
+      $showTime = $st['value'];
+      // ksm("CreatePerformances::execute:showtime", $showTime);
+      $dt = Common::convertFieldToDateTime($showTime);
+      // ksm("CreatePerformances::execute:dt", $dt);
+      $performanceTitle = $dt->format('l, F j, Y - g A');
       $msg = "Generating ONE performance of '$showTitle' for $performanceTitle.";
       drupal_set_message($msg);
 
@@ -59,25 +61,27 @@ class CreatePerformances extends ActionBase {
 
       // For the first performance...set the show's field_opens value.
       if ($counter === 1) {
-        $entity->set('field_opens', $showTime['value']);
+        $entity->set('field_opens', $st);
       }
 
       // For the final performance...calculate and set the show's field_closes value.
       if ($final) {
-        $running = intval($fields['field_running_time']['value']) * 60;
-        $close = strtotime($date_time) + $running;
-        $closes = date("Y-m-d\TH:i:s", $close);
+        $running = intval($entity->get('field_running_time')->value);
+        // ksm("CreatePerformances::execute:running", $running);
+        $end = $dt->modify("+$running minutes");
+        // ksm("CreatePerformances::execute:end", $end);
+        $closes = Common::convertDTtoField($end);
         $entity->set('field_closes', $closes);
       }
 
       $counter++;
-      Common::createOnePerformance($entity, $performanceTitle, $date_time, $final);
+      Common::createOnePerformance($entity, $performanceTitle, $final);
     }
 
     $entity->save();
   }
-  
-  
+
+
   /**
    * Checks object access.
    */
@@ -85,7 +89,7 @@ class CreatePerformances extends ActionBase {
     $status = \Drupal\wieting\Plugin\Action\Common::hasAccess($object);
     return $status;
   }
-  
+
 }
 
 ?>

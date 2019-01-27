@@ -1,0 +1,11 @@
+# Lifted from https://www.drupal.org/node/2330631
+id: delete_performances
+label: 'Delete selected performance(s)'
+status: true
+langcode: en
+type: node
+weight: 20
+plugin: delete_performances
+dependencies:
+  module:
+    - node

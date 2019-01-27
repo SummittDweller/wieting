@@ -11,6 +11,7 @@ namespace Drupal\wieting\Plugin\Action;
 use Drupal\Core\Action\ActionBase;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\wieting\Plugin\Action\Common;
+use \DateTime;
 
 /**
  * Generate 3 months of TBD shows after the selected show.
@@ -38,32 +39,38 @@ class GenerateTBDShows extends ActionBase {
     }
 
     // Find the opening date of the selected show.
-    $fields = $entity->toArray();
-    $opens = strtotime($fields['field_opens'][0]['value']);    // a UTC timestamp
-    // ksm("opens...", $opens);
+    $fields = $entity->toArray( );
+    $openS = $fields['field_opens'][0]['value'];
+    $openDT = Common::convertFieldToDateTime($openS);
+    $target = $openDT;
 
     // Loop forward through 99 possible TBD dates...
-    for ($i=0; $i<99; $i++) {
-      $next = $opens + ($i*24*60*60);                                  // a UTC timestamp
-      $utc = date("Y-m-d\TH:i:s", $next);                       // a UTC string
-      $local = strtotime($utc . " UTC");                          // equiv. local timestamp
-      $localS = date('l, F j, Y - g A', $local);
-      $weekday = (int)date("N", $local);                         // 1 = Monday ... 7 = Sunday
-      $month = (int)date("n", $local);                           // 1 = Jan ... 12 = Dec
+    for ($i=0; $i<98; $i++) {
 
-      // ksm("opens, next, utc, local, weekday, month...", $opens, $next, $utc, $local, $weekday, $month);
+      // ksm("GenerateTBDShows::execute:target", $target);
+      $title = $target->format('l, F j, Y - g A');
+      $msg = FALSE;
 
-      if ($weekday < 4) { continue; }                                   // skip Monday thru Wednesday
-      if ($weekday === 4 && ($month < 6 || $month > 8)) { continue; }   // Thursday, but not summer
+      $thursday = ($target->format('N') == 4);
+      $weekend = ($target->format('N') > 4);
+      $summer = ((($target->format('n')) > 5 ) && (($target->format('n')) < 9 ));
 
-      // OK, we have a good target date.
-      // $msg = "Generating a TBD performance for $localS.";
-      // drupal_set_message($msg);
-      Common::createOnePerformance($entity, $localS, $utc, false);
+      if ($thursday && $summer) {
+        $msg = "special TNT";
+      } else if ($weekend) {
+        $msg = "regular weekend";
+      }
+
+      if ($msg) {
+        drupal_set_message("Generating a $msg TBD performance for $title");
+        Common::createOnePerformance($entity, $title, false);
+      }
+
+      $target->modify("+1 day");   // next day
     }
   }
-  
-  
+
+
   /**
    * Checks object access.
    */
@@ -71,7 +78,7 @@ class GenerateTBDShows extends ActionBase {
     $status = \Drupal\wieting\Plugin\Action\Common::hasAccess($object);
     return $status;
   }
-  
+
 }
 
 ?>
