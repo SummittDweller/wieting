@@ -272,16 +272,18 @@ public static function remindAssignedVolunteers($performance, $testing=FALSE) {
 
       $msg = t($message, $vars);
 
-      Common::dispatchReminder($uid, $user, $title, $msg, $testing);
-      $done++;
-
+      if ($user) {
+        Common::dispatchReminder($uid, $user, $title, $msg, $testing);
+        $done++;
+      }
+      
       // If necessary, send the partner a reminder...
       if ($pID && ($user = \Drupal\user\Entity\User::load($pID))) {
         Common::dispatchReminder($pID, $user, $title, $msg, $testing);
         $done++;
       }
 
-      // If necessary, send the manager a SEPCIAL reminder...
+      // If necessary, send the manager a SPECIAL reminder...
       if ($mID && ($user = \Drupal\user\Entity\User::load($mID))) {
         Common::dispatchReminder($mID, $user, $title, $msg, $testing);
         $done++;
